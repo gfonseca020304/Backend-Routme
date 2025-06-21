@@ -1,0 +1,248 @@
+openapi: 3.0.0
+
+info:
+  title: RouteMe Backend API
+  description: Returns all possible public transportation routes between two places in Managua. Includes user registration, login, and ability to save favorite routes.
+  version: 1.2.0
+
+servers:
+  - url: http://localhost:3001
+
+paths:
+  /api/route:
+    get:
+      summary: Get all possible route options from one stop to another
+      parameters:
+        - in: query
+          name: from
+          required: true
+          schema:
+            type: string
+          description: Origin stop name (partial or full)
+        - in: query
+          name: to
+          required: true
+          schema:
+            type: string
+          description: Destination stop name (partial or full)
+        - in: query
+          name: userLat
+          required: false
+          schema:
+            type: number
+          description: User latitude (for walking directions to the route)
+        - in: query
+          name: userLon
+          required: false
+          schema:
+            type: number
+          description: User longitude (for walking directions to the route)
+      responses:
+        "200":
+          description: Array of route options
+          content:
+            application/json:
+              example:
+                - trip_id: "5012"
+                  route_short_name: "119"
+                  route_long_name: "UCA - Mercado Oriental"
+                  from_stop: "Metrocentro"
+                  to_stop: "UCA"
+                  shape: [{ lat: 12.123, lon: -86.245 }, ...]
+                  stops:
+                    - stop_name: "Metrocentro"
+                      lat: 12.123
+                      lon: -86.245
+                  walkingDirections:
+                    distance: "1.2 km"
+                    duration: "15 mins"
+                    steps:
+                      - instruction: "Walk straight"
+                        distance: "500 m"
+                        duration: "6 mins"
+                        polyline: "abcd1234"
+                    polyline: "xyz456"
+
+  /api/users/register:
+    post:
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+            example:
+              email: "juan@example.com"
+              password: "securepassword"
+              first_name: "Juan"
+              last_name: "Quintanilla"
+      responses:
+        "201":
+          description: User successfully registered
+        "409":
+          description: Email already registered
+
+  /api/users/login:
+    post:
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+            example:
+              email: "juan@example.com"
+              password: "securepassword"
+      responses:
+        "200":
+          description: User authenticated
+          content:
+            application/json:
+              example:
+                id: 1
+                email: "juan@example.com"
+                first_name: "Juan"
+                last_name: "Quintanilla"
+                token: "JWT_TOKEN"
+        "401":
+          description: Invalid password
+        "404":
+          description: User not found
+
+  /api/favorites:
+    get:
+      summary: Get all favorite routes for the logged-in user
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of favorite routes
+          content:
+            application/json:
+              example:
+                - route_short_name: "119"
+                  route_long_name: "UCA - Mercado Oriental"
+                  shape: [{ lat: 12.123, lon: -86.245 }, ...]
+                  from_stop_id: "stop_123"
+                  to_stop_id: "stop_456"
+                  route_id: "route_119"
+                  label: "My Morning Route"
+
+    post:
+      summary: Add a favorite route for the logged-in user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - from_stop_id
+                - to_stop_id
+                - route_id
+                - label
+              properties:
+                from_stop_id:
+                  type: string
+                to_stop_id:
+                  type: string
+                route_id:
+                  type: string
+                label:
+                  type: string
+            example:
+              from_stop_id: "stop_123"
+              to_stop_id: "stop_456"
+              route_id: "route_119"
+              label: "My Morning Route"
+      responses:
+        "201":
+          description: Favorite route added
+        "409":
+          description: Favorite already exists
+
+    put:
+      summary: Update the label of an existing favorite
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - from_stop_id
+                - to_stop_id
+                - route_id
+                - new_label
+              properties:
+                from_stop_id:
+                  type: string
+                to_stop_id:
+                  type: string
+                route_id:
+                  type: string
+                new_label:
+                  type: string
+            example:
+              from_stop_id: "stop_123"
+              to_stop_id: "stop_456"
+              route_id: "119"
+              new_label: "Evening Route"
+      responses:
+        "200":
+          description: Favorite label updated
+        "404":
+          description: Favorite not found
+
+    delete:
+      summary: Remove a favorite route for the logged-in user
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: from_stop_id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: to_stop_id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: route_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Favorite deleted
+        "404":
+          description: Favorite not found
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

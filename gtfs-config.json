@@ -1,0 +1,10 @@
+{
+  "sqlite": true,
+  "sqlitePath": "./gtfs.sqlite",
+  "agencies": [
+    {
+      "agency_key": "managua",
+      "path": "./managua-gtfs"
+    }
+  ]
+}
